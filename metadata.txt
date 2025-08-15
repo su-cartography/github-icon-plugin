@@ -1,0 +1,17 @@
+[general]
+name=Map Icons
+description=This plugin provides a wide range of map icons with metadata display
+version=1.0.0
+qgisMinimumVersion=3.0
+homepage=https://github.com/yourusername/map_icons
+file=map_icons.py
+experimental=False
+deprecated=False
+tracker=https://github.com/yourusername/map_icons/issues
+repository=https://github.com/yourusername/map_icons
+about=This plugin provides a comprehensive collection of map icons with metadata display. Users can browse through icons, view their metadata, and apply selected icons to point layers in QGIS.
+author=Bhumi Dasari
+email=bdasari@syr.edu
+tags=icons,maps,metadata,visualization
+category=Vector
+icon=icon.png 
