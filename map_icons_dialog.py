@@ -394,7 +394,10 @@ class mapIconsDialog(QtWidgets.QDialog, FORM_CLASS):
             icon_path: Full path to the selected icon
         """
         # Update icon preview in the metadata panel
-        pixmap = QtGui.QPixmap(icon_path)
+        # pixmap = QtGui.QPixmap(icon_path)
+        # Convert Path object to string if needed
+        icon_path_str = str(icon_path) if icon_path else ""
+        pixmap = QtGui.QPixmap(icon_path_str)
         if not pixmap.isNull():
             scaled_pixmap = pixmap.scaled(150, 150, Qt.KeepAspectRatio, Qt.SmoothTransformation)
             self.iconPreviewLabel.setPixmap(scaled_pixmap)
@@ -476,7 +479,10 @@ class mapIconsDialog(QtWidgets.QDialog, FORM_CLASS):
             })
             
             # Use a raster marker symbol layer for PNG
-            raster_layer = QgsRasterMarkerSymbolLayer(self.selected_icon, 6)
+            # raster_layer = QgsRasterMarkerSymbolLayer(self.selected_icon, 6)
+            # Convert Path object to string if needed
+            icon_path_str = str(self.selected_icon) if self.selected_icon else ""
+            raster_layer = QgsRasterMarkerSymbolLayer(icon_path_str, 6)
             symbol.changeSymbolLayer(0, raster_layer)
             
             return symbol
