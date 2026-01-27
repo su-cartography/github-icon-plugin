@@ -48,9 +48,41 @@ The plugin includes icons for various mapping categories:
 4. Enable the plugin in **Plugins** → **Manage and Install Plugins**
 
 ### Dependencies
-The plugin automatically installs required Python packages:
-- `openpyxl` - For Excel file reading
-- `requests` - For downloading from Zenodo
+
+**Important**: QGIS uses its own Python environment. You must install dependencies manually.
+
+The plugin requires these Python packages:
+- `openpyxl` (≥3.0.0) - For Excel file reading
+- `requests` (≥2.25.0) - For downloading from Zenodo
+
+#### Installing Dependencies
+
+**Option 1: Using qpip Plugin (Recommended)**
+1. Install the [qpip plugin](https://plugins.qgis.org/plugins/qpip/) from QGIS Plugin Manager
+2. qpip will automatically detect and install missing dependencies for all plugins
+
+**Option 2: Using QGIS Python Console**
+1. Open QGIS
+2. Go to **Plugins** → **Python Console**
+3. Run:
+   ```python
+   import subprocess, sys
+   subprocess.check_call([sys.executable, "-m", "pip", "install", "openpyxl", "requests"])
+   ```
+
+**Option 3: Using Command Line (Windows with OSGeo4W)**
+1. Open **OSGeo4W Shell**
+2. Run:
+   ```bash
+   python -m pip install openpyxl requests
+   ```
+
+**Option 4: Using QGIS Python Executable**
+- **Windows**: `"C:\Program Files\QGIS 3.x\bin\python3.exe" -m pip install openpyxl requests`
+- **macOS**: `/Applications/QGIS.app/Contents/MacOS/bin/python3 -m pip install openpyxl requests`
+- **Linux**: `/usr/bin/python3 -m pip install openpyxl requests`
+
+**Note**: If pip is not available in your QGIS Python environment, you may need to install it first through your QGIS installation method (e.g., OSGeo4W setup).
 
 ## Usage
 
@@ -96,9 +128,10 @@ The plugin can be configured through the `config.py` file:
 - Clear plugin cache and restart QGIS
 
 **Metadata not loading**
-- Ensure `openpyxl` package is installed: `pip install openpyxl`
+- Ensure `openpyxl` package is installed in QGIS's Python environment (see Dependencies section above)
 - Check Excel file format compatibility
 - Verify Zenodo file accessibility
+- Check QGIS Python Console for import errors
 
 **Download failures**
 - Check firewall/network settings

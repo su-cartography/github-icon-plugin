@@ -34,7 +34,7 @@
      <!-- Right Side - Metadata Panel -->
      <widget class="QWidget" name="metadataPanel">
       <property name="minimumWidth">
-       <number>300</number>
+       <number>350</number>
       </property>
       <property name="visible">
        <bool>false</bool>
@@ -132,6 +132,46 @@
            <widget class="QLabel" name="modifiedValue">
             <property name="text">
              <string>-</string>
+            </property>
+           </widget>
+          </item>
+          <item row="5" column="0">
+           <widget class="QLabel" name="whenUploadedLabel">
+            <property name="text">
+             <string>When Uploaded:</string>
+            </property>
+           </widget>
+          </item>
+          <item row="5" column="1">
+           <widget class="QLabel" name="whenUploadedValue">
+            <property name="text">
+             <string>-</string>
+            </property>
+           </widget>
+          </item>
+          <item row="6" column="0">
+           <widget class="QLabel" name="creationContextLabel">
+            <property name="text">
+             <string>Creation Context:</string>
+            </property>
+           </widget>
+          </item>
+          <item row="6" column="1">
+           <widget class="QLabel" name="creationContextValue">
+            <property name="text">
+             <string>-</string>
+            </property>
+            <property name="wordWrap">
+             <bool>true</bool>
+            </property>
+            <property name="alignment">
+             <set>Qt::AlignLeft|Qt::AlignTop</set>
+            </property>
+            <property name="textInteractionFlags">
+             <set>Qt::TextSelectableByMouse|Qt::LinksAccessibleByMouse</set>
+            </property>
+            <property name="openExternalLinks">
+             <bool>true</bool>
             </property>
            </widget>
           </item>
