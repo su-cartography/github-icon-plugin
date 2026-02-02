@@ -78,7 +78,8 @@ class mapIconsDialog(QtWidgets.QDialog, FORM_CLASS):
         # Initialize instance variables
         self.selected_icon = None      # Store the currently selected icon path
         self.icon_buttons = []         # Keep references to buttons for highlighting
-        self.icon_metadata = {}        # Store comprehensive metadata for each icon
+        self.icon_metadata = {}        # Store comprehensive metadata for each icon (indexed by filename)
+        self.metadata_list = []        # Store metadata in order to match with sorted icon files
         self.data_manager = None       # Data manager for Zenodo downloads
         
         # Ensure metadata panel is hidden by default
@@ -181,41 +182,76 @@ class mapIconsDialog(QtWidgets.QDialog, FORM_CLASS):
             workbook = load_workbook(metadata_file, read_only=True)
             worksheet = workbook.active
             
-            # Extract headers from first row
-            headers = [cell.value for cell in worksheet[1]]
+            # Extract headers from first row (handle None values)
+            headers = [str(cell.value).strip() if cell.value else "" for cell in worksheet[1]]
+            logging.info(f"Excel file headers: {headers}")
             
-            # Find column indices
-            uuid_idx = headers.index('uuid') if 'uuid' in headers else 0
-            filename_idx = headers.index('filename') if 'filename' in headers else 1
-            primary_tag_idx = headers.index('primary_tag') if 'primary_tag' in headers else 2
-            designer_idx = headers.index('designer') if 'designer' in headers else 3
-            uploader_idx = headers.index('uploader') if 'uploader' in headers else 4
-            when_created_idx = headers.index('when_created') if 'when_created' in headers else 5
-            where_created_idx = headers.index('where_created') if 'where_created' in headers else 6
-            notes_idx = headers.index('notes') if 'notes' in headers else 7
-            source_idx = headers.index('source') if 'source' in headers else 8
+            # Find column indices - handle both hyphen and underscore versions, case-insensitive
+            def find_col(possible_names):
+                headers_lower = [h.lower().replace('-', '_') for h in headers]
+                for name in possible_names:
+                    name_normalized = name.lower().replace('-', '_')
+                    if name_normalized in headers_lower:
+                        idx = headers_lower.index(name_normalized)
+                        logging.info(f"Found column '{name}' at index {idx} (actual header: '{headers[idx]}')")
+                        return idx
+                # Try direct match with original headers
+                for name in possible_names:
+                    if name.lower() in [h.lower() for h in headers]:
+                        idx = [h.lower() for h in headers].index(name.lower())
+                        logging.info(f"Found column '{name}' at index {idx} (actual header: '{headers[idx]}')")
+                        return idx
+                logging.warning(f"Column not found: {possible_names}. Available: {headers}")
+                return None
             
-            # Load metadata from rows
+            designer_idx = find_col(['designer']) or 0
+            uploader_idx = find_col(['uploader']) or 1
+            primary_tag_idx = find_col(['primary-tag', 'primary_tag', 'tag', 'category']) or 2
+            secondary_tags_idx = find_col(['secondary-tags', 'secondary_tags']) or None
+            when_created_idx = find_col(['when-created', 'when_created', 'created', 'date_created']) or 4
+            when_uploaded_idx = find_col(['when-uploaded', 'when_uploaded']) or None
+            where_created_idx = find_col(['where-created', 'where_created', 'location']) or 6
+            icon_geography_idx = find_col(['icon-geography', 'icon_geography']) or None
+            icon_context_idx = find_col(['icon-context', 'icon_context']) or None
+            creation_context_idx = find_col(['creation-context', 'creation_context']) or None
+            notes_idx = find_col(['notes', 'note', 'description']) or 10
+            
+            # Load metadata from rows - store by row index since there's no filename column
+            # We'll match icons to metadata by alphabetical order
             self.icon_metadata = {}
-            for row in worksheet.iter_rows(min_row=2):
-                if len(row) > max(uuid_idx, filename_idx, primary_tag_idx):
-                    filename = str(row[filename_idx].value) if row[filename_idx].value else ""
-                    
-                    if filename and filename.lower().endswith('.png'):
-                        # Extract metadata fields
-                        metadata = {
-                            'uuid': str(row[uuid_idx].value) if row[uuid_idx].value else "",
-                            'primary_tag': str(row[primary_tag_idx].value) if row[primary_tag_idx].value else "",
-                            'designer': str(row[designer_idx].value) if row[designer_idx].value else "",
-                            'uploader': str(row[uploader_idx].value) if row[uploader_idx].value else "",
-                            'when_created': str(row[when_created_idx].value) if row[when_created_idx].value else "",
-                            'where_created': str(row[where_created_idx].value) if row[where_created_idx].value else "",
-                            'notes': str(row[notes_idx].value) if row[notes_idx].value else "",
-                            'source': str(row[source_idx].value) if row[source_idx].value else ""
-                        }
-                        
-                        # Store metadata indexed by filename
-                        self.icon_metadata[filename] = metadata
+            metadata_list = []  # Store in order to match with sorted icon files
+            
+            for row_idx, row in enumerate(worksheet.iter_rows(min_row=2), start=2):
+                if len(row) < max(designer_idx, primary_tag_idx, notes_idx, 0):
+                    continue
+                
+                # Safely extract metadata fields
+                def get_value(idx):
+                    if idx is not None and idx < len(row) and row[idx].value:
+                        return str(row[idx].value).strip()
+                    return ""
+                
+                metadata = {
+                    'primary_tag': get_value(primary_tag_idx),
+                    'secondary_tags': get_value(secondary_tags_idx),
+                    'designer': get_value(designer_idx),
+                    'uploader': get_value(uploader_idx),
+                    'when_created': get_value(when_created_idx),
+                    'when_uploaded': get_value(when_uploaded_idx),
+                    'where_created': get_value(where_created_idx),
+                    'icon_geography': get_value(icon_geography_idx),
+                    'icon_context': get_value(icon_context_idx),
+                    'creation_context': get_value(creation_context_idx),
+                    'notes': get_value(notes_idx),
+                    'source': 'boston_workshop'  # Default source
+                }
+                
+                metadata_list.append(metadata)
+            
+            logging.info(f"Loaded {len(metadata_list)} metadata entries")
+            
+            # Store metadata - we'll match by index when loading icons
+            self.metadata_list = metadata_list
             
             workbook.close()
             
@@ -259,12 +295,18 @@ class mapIconsDialog(QtWidgets.QDialog, FORM_CLASS):
         icon_files.sort()  # Sort alphabetically for consistent display
         logging.info(f"Found {len(icon_files)} icon files")
         
-        # Check if metadata was loaded successfully
-        logging.info(f"icon_metadata attribute exists: {hasattr(self, 'icon_metadata')}")
-        if hasattr(self, 'icon_metadata'):
-            logging.info(f"icon_metadata has {len(self.icon_metadata)} items")
+        # Match icons to metadata by index 
+        # Store metadata indexed by filename for lookup
+        self.icon_metadata = {}
+        if hasattr(self, 'metadata_list') and self.metadata_list:
+            for idx, icon_file in enumerate(icon_files):
+                if idx < len(self.metadata_list):
+                    self.icon_metadata[icon_file] = self.metadata_list[idx]
+                    if idx < 3:  # Log first 3 matches
+                        logging.info(f"Matched {icon_file} -> metadata[{idx}]: primary_tag='{self.metadata_list[idx].get('primary_tag', 'N/A')}'")
+            logging.info(f"Matched {len(self.icon_metadata)} icons to metadata")
         else:
-            logging.warning("WARNING: icon_metadata attribute not found!")
+            logging.warning("No metadata list available - icons will show without metadata")
 
         # Separate icons into two categories: with labels and without labels
         icons_with_labels = []
@@ -279,10 +321,7 @@ class mapIconsDialog(QtWidgets.QDialog, FORM_CLASS):
                 
                 # Use primary_tag as the display name for the icon label
                 display_name = primary_tag if primary_tag and primary_tag.strip() else None
-                
-                logging.info(f"  {icon_file} -> '{display_name}' (Primary Tag: '{primary_tag}')")
             else:
-                logging.info(f"  {icon_file} -> not found in mapping")
                 display_name = None
             
             # Categorize the icon
@@ -409,7 +448,6 @@ class mapIconsDialog(QtWidgets.QDialog, FORM_CLASS):
             metadata = self.icon_metadata[filename]
             
             # Extract metadata fields
-            uuid = metadata.get('uuid', '')
             primary_tag = metadata.get('primary_tag', '')
             secondary_tags = metadata.get('secondary_tags', '')
             designer = metadata.get('designer', '')
@@ -421,7 +459,7 @@ class mapIconsDialog(QtWidgets.QDialog, FORM_CLASS):
             icon_context = metadata.get('icon_context', '')
             creation_context = metadata.get('creation_context', '')
             notes = metadata.get('notes', '')
-            source = metadata.get('source', '')
+            source = metadata.get('source', 'boston_workshop')
             
             # Display primary tag as the main information (this is what users see when clicked)
             if primary_tag and primary_tag.strip():
@@ -437,6 +475,14 @@ class mapIconsDialog(QtWidgets.QDialog, FORM_CLASS):
             self.modifiedByValue.setText(uploader if uploader else "-")
             self.modifiedValue.setText(where_created if where_created else "-")
             
+            # Display when_uploaded if UI field exists
+            if hasattr(self, 'whenUploadedValue'):
+                self.whenUploadedValue.setText(when_uploaded if when_uploaded else "-")
+            
+            # Display creation_context if UI field exists
+            if hasattr(self, 'creationContextValue'):
+                self.creationContextValue.setText(creation_context if creation_context else "-")
+            
             # Add notes display if available
             if hasattr(self, 'notesLabel'):
                 self.notesLabel.setText(notes if notes else "No additional notes")
@@ -451,6 +497,10 @@ class mapIconsDialog(QtWidgets.QDialog, FORM_CLASS):
             self.modifiedValue.setText("-")
             
             # Clear additional fields if they exist
+            if hasattr(self, 'whenUploadedValue'):
+                self.whenUploadedValue.setText("-")
+            if hasattr(self, 'creationContextValue'):
+                self.creationContextValue.setText("-")
             if hasattr(self, 'notesLabel'):
                 self.notesLabel.setText("No notes available")
             if hasattr(self, 'sourceLabel'):
