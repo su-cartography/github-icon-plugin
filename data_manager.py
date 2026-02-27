@@ -19,7 +19,8 @@ except ImportError:
     logging.warning("requests library not available. Zenodo downloads will not work.")
 
 from .config import (
-    ICONS_ZIP_URL, 
+    ICONS_ZIP_URL,
+    SVG_ZIP_URL,
     METADATA_EXCEL_URL, 
     CACHE_DIR, 
     ICONS_CACHE_DIR, 
@@ -99,7 +100,10 @@ class DataManager:
         Returns:
             bool: True if successful, False otherwise
         """
-        icons_zip_path = self.icons_cache_dir / "icons.zip"
+        # Extract filename from URL (e.g., "sample-icon-set.zip")
+        from urllib.parse import urlparse
+        zip_filename = urlparse(ICONS_ZIP_URL).path.split('/')[-1]
+        icons_zip_path = self.icons_cache_dir / zip_filename
         
         # Download icons zip file
         if not self.download_file(ICONS_ZIP_URL, icons_zip_path, "icons zip"):
@@ -123,6 +127,69 @@ class DataManager:
             logger.error(f"Unexpected error extracting icons: {e}")
             return False
     
+    def _get_png_icons_dir(self):
+        """Return the directory where PNG icons live (e.g. cache/sample-icon-set)."""
+        sample = self.cache_dir / "sample-icon-set"
+        if sample.exists() and any(sample.glob("*.png")):
+            return sample
+        if self.icons_cache_dir.exists() and any(self.icons_cache_dir.glob("*.png")):
+            return self.icons_cache_dir
+        cache_icons = self.cache_dir / "icons"
+        if cache_icons.exists() and any(cache_icons.glob("*.png")):
+            return cache_icons
+        for p in self.cache_dir.rglob("*.png"):
+            return p.parent
+        return self.cache_dir / "sample-icon-set"
+
+    def download_and_extract_svgs(self):
+        """
+        Download and extract SVG icons from Zenodo.
+        After extraction, copies SVGs into the same folder as PNGs so the plugin finds them.
+        
+        Returns:
+            bool: True if successful, False otherwise
+        """
+        from urllib.parse import urlparse
+        zip_filename = urlparse(SVG_ZIP_URL).path.split('/')[-1]
+        svg_zip_path = self.icons_cache_dir / zip_filename
+
+        logger.info(f"Downloading SVG zip from: {SVG_ZIP_URL}")
+        if not self.download_file(SVG_ZIP_URL, svg_zip_path, "SVG icons zip"):
+            logger.warning("SVG zip download failed. Check that the file exists on Zenodo and the URL in config.py matches (e.g. sample-icon-set-svg.zip).")
+            return False
+
+        try:
+            with zipfile.ZipFile(svg_zip_path, 'r') as zip_ref:
+                zip_ref.extractall(self.cache_dir)
+            try:
+                svg_zip_path.unlink()
+            except FileNotFoundError:
+                pass
+            logger.info("SVG zip extracted successfully")
+        except zipfile.BadZipFile as e:
+            logger.error(f"Failed to extract SVG icons (bad zip): {e}")
+            return False
+        except Exception as e:
+            logger.error(f"Unexpected error extracting SVG icons: {e}")
+            return False
+
+        # Copy all extracted SVGs into the PNG icons directory so the plugin finds them
+        target_dir = self._get_png_icons_dir()
+        target_dir.mkdir(parents=True, exist_ok=True)
+        copied = 0
+        for svg_path in self.cache_dir.rglob("*.svg"):
+            try:
+                dest = target_dir / svg_path.name
+                if dest != svg_path and (not dest.exists() or dest.stat().st_mtime < svg_path.stat().st_mtime):
+                    import shutil
+                    shutil.copy2(svg_path, dest)
+                    copied += 1
+            except Exception as e:
+                logger.warning(f"Could not copy {svg_path} to {target_dir}: {e}")
+        if copied:
+            logger.info(f"Copied {copied} SVG file(s) into {target_dir}")
+        return True
+    
     def download_metadata(self):
         """
         Download metadata Excel file from Zenodo.
@@ -130,7 +197,10 @@ class DataManager:
         Returns:
             bool: True if successful, False otherwise
         """
-        metadata_path = self.metadata_cache_dir / "boston-workshop-icons.xlsx"
+        # Extract filename from URL (e.g., "sample-icon-set.xlsx")
+        from urllib.parse import urlparse
+        filename = urlparse(METADATA_EXCEL_URL).path.split('/')[-1]
+        metadata_path = self.metadata_cache_dir / filename
         return self.download_file(METADATA_EXCEL_URL, metadata_path, "metadata Excel file")
     
     def get_icons_directory(self):
@@ -149,7 +219,10 @@ class DataManager:
         Returns:
             Path: Path to metadata file
         """
-        return self.metadata_cache_dir / "boston-workshop-icons.xlsx"
+        # Extract filename from URL (e.g., "sample-icon-set.xlsx")
+        from urllib.parse import urlparse
+        filename = urlparse(METADATA_EXCEL_URL).path.split('/')[-1]
+        return self.metadata_cache_dir / filename
     
     def icons_exist(self):
         """
@@ -158,9 +231,53 @@ class DataManager:
         Returns:
             bool: True if icons exist, False otherwise
         """
-        return self.icons_cache_dir.exists() and any(
-            self.icons_cache_dir.glob("*.png")
-        )
+        # Check in sample-icon-set directory (where zip extracts)
+        sample_icon_set_dir = self.cache_dir / "sample-icon-set"
+        if sample_icon_set_dir.exists():
+            if any(sample_icon_set_dir.glob("*.png")):
+                return True
+        # Check in icons_cache_dir and also in cache/icons (common extraction location)
+        if self.icons_cache_dir.exists():
+            if any(self.icons_cache_dir.glob("*.png")):
+                return True
+        # Also check in cache/icons subdirectory (where zip often extracts to)
+        cache_icons_dir = self.cache_dir / "icons"
+        if cache_icons_dir.exists():
+            if any(cache_icons_dir.glob("*.png")):
+                return True
+        # Check recursively in cache directory
+        if self.cache_dir.exists():
+            if any(self.cache_dir.rglob("*.png")):
+                return True
+        return False
+    
+    def svgs_exist(self):
+        """
+        Check if SVG icons exist in cache.
+        
+        Returns:
+            bool: True if SVGs exist, False otherwise
+        """
+        # Check in sample-icon-set directory (same as PNGs after copy)
+        sample_icon_set_dir = self.cache_dir / "sample-icon-set"
+        if sample_icon_set_dir.exists():
+            if any(sample_icon_set_dir.glob("*.svg")):
+                return True
+        # Check in sample-icon-set-svg / sample-icon-set-svgs (zip may extract here)
+        for sub in ("sample-icon-set-svg", "sample-icon-set-svgs"):
+            d = self.cache_dir / sub
+            if d.exists() and any(d.glob("*.svg")):
+                return True
+        # Check in cache/icons subdirectory
+        cache_icons_dir = self.cache_dir / "icons"
+        if cache_icons_dir.exists():
+            if any(cache_icons_dir.glob("*.svg")):
+                return True
+        # Check recursively in cache directory
+        if self.cache_dir.exists():
+            if any(self.cache_dir.rglob("*.svg")):
+                return True
+        return False
     
     def metadata_exists(self):
         """
@@ -185,6 +302,13 @@ class DataManager:
             logger.info("Icons not found in cache, downloading from Zenodo...")
             if not self.download_and_extract_icons():
                 success = False
+        
+        # Check and download SVG icons if needed (optional, but nice to have)
+        if not self.svgs_exist():
+            logger.info("SVG icons not found in cache, downloading from Zenodo...")
+            if not self.download_and_extract_svgs():
+                logger.warning("SVG icons download failed, but continuing without SVGs")
+                # Don't set success = False for SVG failure, as it's optional
         
         # Check and download metadata if needed
         if not self.metadata_exists():
