@@ -108,7 +108,7 @@ class DataManager:
         # Extract icons
         try:
             with zipfile.ZipFile(icons_zip_path, 'r') as zip_ref:
-                zip_ref.extractall(self.icons_cache_dir)
+                zip_ref.extractall(self.cache_dir)
             
             # Remove the zip file after extraction
             icons_zip_path.unlink()
