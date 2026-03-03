@@ -1,0 +1,24 @@
+# Zenodo-downloaded data (so clone = fresh pull from Zenodo)
+cache/
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.Python
+*.so
+.venv/
+venv/
+env/
+
+# IDE / OS
+.idea/
+.vscode/
+*.swp
+.DS_Store
+Thumbs.db
+
+# Optional local files (not needed when using Zenodo)
+boston-workshop-icons.xlsx
+excel_icons/
+excel_icons_svg/

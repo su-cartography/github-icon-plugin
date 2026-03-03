@@ -193,9 +193,15 @@ class mapIcons:
                     layer.triggerRepaint()
                     
                     # Show success message
+                    # Get filename from Path object (use .name property)
+                    icon_filename = self.dlg.selected_icon.name if self.dlg.selected_icon else "Unknown"
+                    # Try to get metadata for display
+                    metadata = self.dlg.icon_metadata.get(icon_filename, {})
+                    primary_tag = metadata.get('primary_tag', 'Unknown') if metadata else 'Unknown'
+                    
                     self.iface.messageBar().pushSuccess(
                         "Map Icons", 
-                        f"Icon '{self.dlg.icon_metadata.get(self.dlg.selected_icon.split('/')[-1], {}).get('uuid', 'Unknown')}' applied to layer '{layer.name()}'"
+                        f"Icon '{primary_tag}' applied to layer '{layer.name()}'"
                     )
                 else:
                     # Show warning if no point layer is selected

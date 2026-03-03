@@ -6,13 +6,15 @@ This file contains configuration settings for the plugin, including Zenodo URLs
 for downloading icons and metadata files.
 """
 
-# Zenodo DOI and URLs
-ZENODO_DOI = "10.5281/zenodo.16882205"
-ZENODO_BASE_URL = "https://zenodo.org/record/16882205/files"
+# Zenodo DOI and URLs (v3 - Place-based Boston Map Icons)
+# https://zenodo.org/records/18750339
+ZENODO_DOI = "10.5281/zenodo.18750339"
+ZENODO_BASE_URL = "https://zenodo.org/record/18750339/files"
 
-# File URLs on Zenodo
-ICONS_ZIP_URL = f"{ZENODO_BASE_URL}/icons.zip"
-METADATA_EXCEL_URL = f"{ZENODO_BASE_URL}/boston-workshop-icons.xlsx"
+# File URLs on Zenodo (filenames must match the record exactly)
+ICONS_ZIP_URL = f"{ZENODO_BASE_URL}/sample-icon-set.zip"
+SVG_ZIP_URL = f"{ZENODO_BASE_URL}/sample-icon-set-svgs.zip"  # SVG icons zip (note: "svgs")
+METADATA_EXCEL_URL = f"{ZENODO_BASE_URL}/sample-icon-set.xlsx"
 
 # Local cache directories
 CACHE_DIR = "cache"
@@ -21,20 +23,55 @@ METADATA_CACHE_DIR = "cache/metadata"
 
 # Plugin settings
 MAX_ICONS_PER_ROW = 5
-ICON_SIZE = 64
-BUTTON_SIZE = 72
-LABEL_MAX_WIDTH = 80
-LABEL_MIN_HEIGHT = 20
+ICON_SIZE = 80  # Increased for better visibility
+BUTTON_SIZE = 100  # Increased for better clickability
+LABEL_MAX_WIDTH = 140  # Wider to show full primary tags (e.g. "public-basketball-courts")
+LABEL_MIN_HEIGHT = 36  # Taller for multi-line labels
 
-# Label styling
+# Enhanced label styling with modern design - larger font for better visibility
 LABEL_STYLE = """
 QLabel {
-    font-size: 9px; 
-    font-weight: bold;
+    font-size: 11px; 
+    font-weight: 600;
     color: #2c3e50; 
-    background-color: #ecf0f1; 
-    border: 1px solid #bdc3c7; 
-    border-radius: 3px;
-    padding: 2px;
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, 
+        stop:0 #ffffff, stop:1 #f8f9fa);
+    border: 1px solid #dee2e6; 
+    border-radius: 6px;
+    padding: 6px 8px;
+    min-height: 36px;
+}
+"""
+
+# Icon button styling - modern card design
+ICON_BUTTON_STYLE = """
+QPushButton {
+    background-color: #ffffff;
+    border: 2px solid #e9ecef;
+    border-radius: 12px;
+    padding: 8px;
+}
+QPushButton:hover {
+    background-color: #f8f9fa;
+    border: 2px solid #3498db;
+    transform: scale(1.05);
+}
+QPushButton:checked {
+    background-color: #e3f2fd;
+    border: 3px solid #2196f3;
+    border-radius: 12px;
+}
+QPushButton:pressed {
+    background-color: #bbdefb;
+    border: 3px solid #1976d2;
+}
+"""
+
+# Container widget styling for card effect
+CONTAINER_STYLE = """
+QWidget {
+    background-color: transparent;
+    border-radius: 8px;
+    padding: 4px;
 }
 """

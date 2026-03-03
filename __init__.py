@@ -23,8 +23,6 @@
  This script initializes the plugin, making it known to QGIS.
 """
 
-print("DEBUG: __init__.py is being loaded")
-
 # noinspection PyPep8Naming
 def classFactory(iface):  # pylint: disable=invalid-name
     """Load mapIcons class from file mapIcons.
@@ -32,13 +30,27 @@ def classFactory(iface):  # pylint: disable=invalid-name
     :param iface: A QGIS interface instance.
     :type iface: QgsInterface
     """
-    print("DEBUG: classFactory called")
     try:
         from .map_icons import mapIcons
-        print("DEBUG: mapIcons class imported successfully")
-        instance = mapIcons(iface)
-        print("DEBUG: mapIcons instance created successfully")
-        return instance
+        return mapIcons(iface)
+    except ImportError as e:
+        import traceback
+        error_msg = f"Failed to import map_icons module: {e}\n\nTraceback:\n{traceback.format_exc()}"
+        print(f"ERROR in classFactory: {error_msg}")
+        # Show error to user via QGIS message bar if possible
+        try:
+            iface.messageBar().pushCritical("Map Icons Plugin Error", 
+                f"Plugin failed to load. Check Python console for details.\n\nError: {str(e)}")
+        except:
+            pass
+        raise
     except Exception as e:
-        print(f"DEBUG: Error in classFactory: {e}")
+        import traceback
+        error_msg = f"Unexpected error loading plugin: {e}\n\nTraceback:\n{traceback.format_exc()}"
+        print(f"ERROR in classFactory: {error_msg}")
+        try:
+            iface.messageBar().pushCritical("Map Icons Plugin Error", 
+                f"Plugin failed to load. Check Python console for details.\n\nError: {str(e)}")
+        except:
+            pass
         raise
