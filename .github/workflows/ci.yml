@@ -1,0 +1,38 @@
+# Run checks on pull requests and pushes to main.
+# Full QGIS-based tests (dialog, environment) still need a local QGIS install.
+name: CI
+
+on:
+  pull_request:
+    branches: [main, master]
+  push:
+    branches: [main, master]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.10", "3.12"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Syntax check (compileall)
+        run: |
+          python -m compileall -q .
+
+      # test/__init__.py imports qgis; run this file directly so metadata checks work without QGIS
+      - name: Validate plugin metadata (no QGIS required)
+        run: |
+          python test/test_init.py
