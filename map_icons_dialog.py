@@ -80,17 +80,28 @@ class mapIconsDialog(QtWidgets.QDialog, FORM_CLASS):
         self.setupUi(self)
         
         # Initialize instance variables
-        self.selected_icon = None      # Store the currently selected icon path
+        self.selected_icon = None       # Store the currently selected icon path
         self.selected_icon_png = None   # Store PNG version of selected icon
         self.selected_icon_svg = None   # Store SVG version of selected icon
-        self.use_svg_format = False    # Flag to track if SVG format is selected
+        self.use_svg_format = False     # Flag to track if SVG format is selected
         self.selected_icon_filename = None  # Store filename for SVG lookup
-        self.icon_buttons = []         # Keep references to buttons for highlighting
-        self.icon_metadata = {}        # Store comprehensive metadata for each icon (indexed by filename)
-        self.metadata_list = []        # Store metadata in order to match with sorted icon files
-        self.data_manager = None       # Data manager for Zenodo downloads
-        self.actual_icons_dir = None   # Store where icons were actually found
+        self.icon_buttons = []          # Keep references to buttons for highlighting
+        self.icon_metadata = {}         # Store comprehensive metadata for each icon (indexed by filename)
+        self.metadata_list = []         # Store metadata in order to match with sorted icon files
+        self.data_manager = None        # Data manager for Zenodo downloads
+        self.actual_icons_dir = None    # Store where icons were actually found
+        self.icon_entries = []          # Store per-icon data for search/filtering
         
+        # Add a search box above the icon grid for filtering by tags
+        
+        self.searchLineEdit = QtWidgets.QLineEdit(self)
+        self.searchLineEdit.setPlaceholderText("Search icons by primary / secondary tags...")
+        self.searchLineEdit.textChanged.connect(self.on_search_text_changed)
+        # Insert at top of the main layout, above the splitter
+        if hasattr(self, 'mainLayout'):
+            self.mainLayout.insertWidget(0, self.searchLineEdit)
+        
+
         # Ensure metadata panel is hidden by default
         self.metadataPanel.setVisible(False)
         
@@ -691,6 +702,59 @@ class mapIconsDialog(QtWidgets.QDialog, FORM_CLASS):
         if layout.spacing() < 8:
             layout.setSpacing(12)  # Add spacing between icon cards
         self.icon_buttons.append(btn)
+
+        # Record entry for search/filtering
+        primary_tag = ""
+        secondary_tags = ""
+        if icon_file in self.icon_metadata:
+            md = self.icon_metadata[icon_file]
+            primary_tag = md.get('primary_tag', '') or ''
+            secondary_tags = md.get('secondary_tags', '') or ''
+        search_text = f"{primary_tag} {secondary_tags}".strip().lower()
+        self.icon_entries.append({
+            'button': btn,
+            'container': container,
+            'icon_file': icon_file,
+            'primary_tag': primary_tag,
+            'secondary_tags': secondary_tags,
+            'search_text': search_text,
+        })
+
+    def on_search_text_changed(self, text):
+        """
+        Filter visible icons based on search text.
+        Matches against primary and secondary tags (case-insensitive).
+        """
+        # If icon entries haven't been created yet, nothing to filter
+        if not hasattr(self, 'icon_entries') or not self.icon_entries:
+            return
+
+        query = (text or "").strip().lower()
+
+        # Empty search -> show everything
+        if not query:
+            for entry in self.icon_entries:
+                entry_container = entry.get('container')
+                if entry_container:
+                    entry_container.setVisible(True)
+            return
+
+        # Split into tokens so user can type multiple words
+        tokens = [t for t in query.split() if t]
+        if not tokens:
+            for entry in self.icon_entries:
+                entry_container = entry.get('container')
+                if entry_container:
+                    entry_container.setVisible(True)
+            return
+
+        # Apply filter
+        for entry in self.icon_entries:
+            haystack = entry.get('search_text', '')
+            visible = all(token in haystack for token in tokens)
+            entry_container = entry.get('container')
+            if entry_container:
+                entry_container.setVisible(visible)
 
     def _check_svg_availability(self):
         """Check if SVG files are available in the cache and log the results."""
