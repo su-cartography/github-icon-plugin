@@ -1,17 +1,17 @@
 [general]
-name=Map Icons
-description=This plugin provides a wide range of map icons with metadata display
+name=galleryofpossibilities
+description=A feminist map icon gallery and QGIS plugin.
 version=1.0.0
 qgisMinimumVersion=3.0
-homepage=https://github.com/su-cartography/QGIS-icon-plugin
+homepage=https://github.com/su-cartography/gallery-of-possibilities
 file=map_icons.py
 experimental=False
 deprecated=False
-tracker=https://github.com/su-cartography/QGIS-icon-plugin/issues
-repository=https://github.com/su-cartography/QGIS-icon-plugin
-about=This plugin provides a comprehensive collection of map icons with metadata display. Users can browse through icons, view their metadata, and apply selected icons to point layers in QGIS.
-author=Bhumi Dasari
-email=bdasari@syr.edu
+tracker=https://github.com/su-cartography/gallery-of-possibilities/issues
+repository=https://github.com/su-cartography/gallery-of-possibilities
+about=The galleryofpossibilities is a feminist mapping tool and an alternative map icon library,  grounded in feminist thought and practice that can be integrated into  QGIS, an open-source mapping platform, and cartography, more broadly.
+author=Meghan Kelly
+email=mkelly51@syr.edu
 tags=icons,maps,metadata,visualization
 category=Vector
-icon=icon.png 
+icon=icon.png
