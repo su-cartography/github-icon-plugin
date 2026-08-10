@@ -760,9 +760,9 @@ class mapIconsDialog(QtWidgets.QDialog, FORM_CLASS):
                                 header = check_file.read(8)
                                 if header[:8] == b'\x89PNG\r\n\x1a\n':
                                     png_files_no_ext.append(f)
-                        except:
-                            pass
-                
+                        except OSError:
+                            continue
+                    
                 if png_files_no_ext:
                     actual_icons_dir = png_files_no_ext[0].parent
                     print(f"Found {len(png_files_no_ext)} PNG files (without extension) in: {actual_icons_dir}")
@@ -807,8 +807,8 @@ class mapIconsDialog(QtWidgets.QDialog, FORM_CLASS):
                         # PNG files start with: 89 50 4E 47 0D 0A 1A 0A
                         if header[:8] == b'\x89PNG\r\n\x1a\n':
                             all_icon_files.append(name)
-                except:
-                    pass
+                except OSError:
+                    continue
         
         print(f"Found {len(all_icon_files)} PNG files in {actual_icons_dir}")
         logging.info(f"Found {len(all_icon_files)} PNG files in {actual_icons_dir}")
