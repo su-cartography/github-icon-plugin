@@ -79,8 +79,8 @@ LABEL_MIN_HEIGHT = 36  # Taller for multi-line labels
 ICON_CARD_MIN_WIDTH = 130  # layout estimate; tuned for 5 cols closed, 3 cols with preview open
 
 # Metadata panel preview 
-METADATA_PREVIEW_SIZE = 72
-METADATA_PREVIEW_HEIGHT = 88
+METADATA_PREVIEW_SIZE = 120
+METADATA_PREVIEW_HEIGHT = 140
 PLUGIN_ICON_FILENAME = "icon.png"
 
 # UI theme 
