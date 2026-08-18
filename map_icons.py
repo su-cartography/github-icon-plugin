@@ -174,7 +174,7 @@ class mapIcons:
 
         # Show the dialog
         self.dlg.show()
-        result = self.dlg.exec_()
+        result = self.dlg.exec()
 
         # Handle the result
         if result == 1:  # QDialog.Accepted

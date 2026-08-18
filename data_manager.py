@@ -57,6 +57,12 @@ def resolve_latest_zenodo_assets():
     """
     try:
         logger.info("Fetching latest Zenodo record from %s", ZENODO_API_LATEST_URL)
+        parsed = urlparse(ZENODO_API_LATEST_URL)
+        if parsed.scheme not in ("http", "https"):
+            raise ValueError(
+                f"Refusing non-HTTP(S) URL scheme {parsed.scheme!r}: "
+                f"{ZENODO_API_LATEST_URL}"
+            )
         request = Request(
             ZENODO_API_LATEST_URL, headers={"User-Agent": _USER_AGENT}
         )
@@ -110,13 +116,16 @@ def _download(url, dest, label):
     dest.parent.mkdir(parents=True, exist_ok=True)
     try:
         logger.info("Downloading %s from %s", label, url)
+        parsed = urlparse(url)
+        if parsed.scheme not in ("http", "https"):
+            raise ValueError(f"Refusing non-HTTP(S) URL scheme {parsed.scheme!r}: {url}")
         request = Request(url, headers={"User-Agent": _USER_AGENT})
         with urlopen(request, timeout=30) as response:
             with open(dest, "wb") as f:
                 shutil.copyfileobj(response, f)
         logger.info("Downloaded %s to %s", label, dest)
         return True
-    except (HTTPError, URLError, OSError, TimeoutError) as err:
+    except (HTTPError, URLError, OSError, TimeoutError, ValueError) as err:
         logger.error("Failed to download %s: %s", label, err)
         return False
 

@@ -39,9 +39,11 @@ def classFactory(iface):  # pylint: disable=invalid-name
         print(f"ERROR in classFactory: {error_msg}")
         # Show error to user via QGIS message bar if possible
         try:
-            iface.messageBar().pushCritical("Map Icons Plugin Error", 
-                f"Plugin failed to load. Check Python console for details.\n\nError: {str(e)}")
-        except:
+            iface.messageBar().pushCritical(
+                "Map Icons Plugin Error",
+                f"Plugin failed to load. Check Python console for details.\n\nError: {str(e)}",
+            )
+        except (AttributeError, RuntimeError, TypeError):
             pass
         raise
     except Exception as e:
@@ -49,8 +51,10 @@ def classFactory(iface):  # pylint: disable=invalid-name
         error_msg = f"Unexpected error loading plugin: {e}\n\nTraceback:\n{traceback.format_exc()}"
         print(f"ERROR in classFactory: {error_msg}")
         try:
-            iface.messageBar().pushCritical("Map Icons Plugin Error", 
-                f"Plugin failed to load. Check Python console for details.\n\nError: {str(e)}")
-        except:
+            iface.messageBar().pushCritical(
+                "Map Icons Plugin Error",
+                f"Plugin failed to load. Check Python console for details.\n\nError: {str(e)}",
+            )
+        except (AttributeError, RuntimeError, TypeError):
             pass
         raise

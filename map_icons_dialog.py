@@ -170,7 +170,7 @@ class mapIconsDialog(QtWidgets.QDialog, FORM_CLASS):
         if os.path.isfile(self._plugin_icon_path):
             self.headerIconLabel.setPixmap(
                 QtGui.QPixmap(self._plugin_icon_path).scaled(
-                    36, 36, Qt.KeepAspectRatio, Qt.SmoothTransformation
+                    36, 36, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation
                 )
             )
 
@@ -311,20 +311,20 @@ class mapIconsDialog(QtWidgets.QDialog, FORM_CLASS):
         if hasattr(self, "scrollAreaWidgetContents"):
             self.scrollAreaWidgetContents.setStyleSheet("background: transparent;")
             self.scrollAreaWidgetContents.setSizePolicy(
-                QSizePolicy.Preferred, QSizePolicy.Minimum
+                QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Minimum
             )
         if hasattr(self, "metadataPanel"):
             self.metadataPanel.setStyleSheet(METADATA_PANEL_STYLE)
         if hasattr(self, "metadataCloseButton"):
             self.metadataCloseButton.setObjectName("metadataCloseButton")
             self.metadataCloseButton.setStyleSheet(METADATA_CLOSE_BUTTON_STYLE)
-            self.metadataCloseButton.setCursor(Qt.PointingHandCursor)
+            self.metadataCloseButton.setCursor(Qt.CursorShape.PointingHandCursor)
         if hasattr(self, "iconPreviewLabel"):
             self.iconPreviewLabel.setStyleSheet(PREVIEW_LABEL_STYLE)
             self.iconPreviewLabel.setFixedHeight(METADATA_PREVIEW_HEIGHT)
             self.iconPreviewLabel.setMaximumHeight(METADATA_PREVIEW_HEIGHT)
             self.iconPreviewLabel.setSizePolicy(
-                QSizePolicy.Expanding, QSizePolicy.Fixed
+                QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed
             )
             self.iconPreviewLabel.setScaledContents(False)
         if hasattr(self, "metadataGroup"):
@@ -357,7 +357,7 @@ class mapIconsDialog(QtWidgets.QDialog, FORM_CLASS):
             if format_idx >= 0:
                 self.metadataLayout.setStretch(format_idx, 0)
         if hasattr(self, "iconLayout"):
-            self.iconLayout.setAlignment(Qt.AlignCenter | Qt.AlignTop)
+            self.iconLayout.setAlignment(Qt.AlignmentFlag.AlignCenter | Qt.AlignmentFlag.AlignTop)
             self.iconLayout.setSpacing(24)
             self.iconLayout.setContentsMargins(16,8,16,16)
         if hasattr(self, "splitter"):
@@ -436,7 +436,7 @@ class mapIconsDialog(QtWidgets.QDialog, FORM_CLASS):
             if not visible:
                 container.hide()
                 continue
-            layout.addWidget(container, row, col, Qt.AlignCenter)
+            layout.addWidget(container, row, col, Qt.AlignmentFlag.AlignCenter)
             container.show()
             col += 1
             if col >= new_columns:
@@ -453,8 +453,8 @@ class mapIconsDialog(QtWidgets.QDialog, FORM_CLASS):
         """Top-align rows, span values full width, and keep row spacing even."""
         if not hasattr(self, "metadataForm"):
             return
-        align = Qt.AlignLeft | Qt.AlignTop
-        self.metadataForm.setFieldGrowthPolicy(QFormLayout.AllNonFixedFieldsGrow)
+        align = Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop
+        self.metadataForm.setFieldGrowthPolicy(QFormLayout.FieldGrowthPolicy.AllNonFixedFieldsGrow)
         self.metadataForm.setLabelAlignment(align)
         self.metadataForm.setFormAlignment(align)
         self.metadataForm.setVerticalSpacing(6)
@@ -471,18 +471,18 @@ class mapIconsDialog(QtWidgets.QDialog, FORM_CLASS):
         for name in METADATA_ALL_VALUE_LABELS:
             if hasattr(self, name):
                 label = getattr(self, name)
-                label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
+                label.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
                 label.setStyleSheet(METADATA_VALUE_STYLE)
         for name in METADATA_FIELD_LABELS:
             if hasattr(self, name):
                 getattr(self, name).setStyleSheet(METADATA_FIELD_LABEL_STYLE)
         if hasattr(self, "metadataGroup"):
             self.metadataGroup.setSizePolicy(
-                QSizePolicy.Expanding, QSizePolicy.Preferred
+                QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred
             )
         if hasattr(self, "metadataScrollContents"):
             self.metadataScrollContents.setSizePolicy(
-                QSizePolicy.Expanding, QSizePolicy.Preferred
+                QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred
             )
         if hasattr(self, "metadataScrollArea"):
             self.metadataScrollArea.setWidgetResizable(True)
@@ -491,7 +491,7 @@ class mapIconsDialog(QtWidgets.QDialog, FORM_CLASS):
                 viewport.installEventFilter(self)
         if not getattr(self, "_metadata_form_spacer_added", False):
             self.metadataForm.addItem(
-                QSpacerItem(0, 0, QSizePolicy.Minimum, QSizePolicy.Expanding)
+                QSpacerItem(0, 0, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
             )
             self._metadata_form_spacer_added = True
         if hasattr(self, "metadataLayout") and hasattr(self, "metadataScrollArea"):
@@ -501,7 +501,7 @@ class mapIconsDialog(QtWidgets.QDialog, FORM_CLASS):
 
     def eventFilter(self, obj, event):
         """Recalculate layouts when scroll areas are resized."""
-        if event.type() == QEvent.Resize:
+        if event.type() == QEvent.Type.Resize:
             if (
                 hasattr(self, "metadataScrollArea")
                 and obj is self.metadataScrollArea.viewport()
@@ -537,8 +537,8 @@ class mapIconsDialog(QtWidgets.QDialog, FORM_CLASS):
                 continue
             label = getattr(self, name)
             label.setWordWrap(True)
-            label.setAlignment(Qt.AlignLeft | Qt.AlignTop)
-            label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
+            label.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
+            label.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
             label.setMinimumWidth(field_width)
             text = (label.text() or "").strip()
             if text and text != "-":
@@ -555,7 +555,7 @@ class mapIconsDialog(QtWidgets.QDialog, FORM_CLASS):
         text = value if value else "-"
         if widget_name in METADATA_ALL_VALUE_LABELS:
             label.setWordWrap(True)
-            label.setAlignment(Qt.AlignLeft | Qt.AlignTop)
+            label.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
         label.setText(text)
 
     def _reset_metadata_label_heights(self):
@@ -760,9 +760,9 @@ class mapIconsDialog(QtWidgets.QDialog, FORM_CLASS):
                                 header = check_file.read(8)
                                 if header[:8] == b'\x89PNG\r\n\x1a\n':
                                     png_files_no_ext.append(f)
-                        except:
-                            pass
-                
+                        except OSError:
+                            continue
+                    
                 if png_files_no_ext:
                     actual_icons_dir = png_files_no_ext[0].parent
                     print(f"Found {len(png_files_no_ext)} PNG files (without extension) in: {actual_icons_dir}")
@@ -807,8 +807,8 @@ class mapIconsDialog(QtWidgets.QDialog, FORM_CLASS):
                         # PNG files start with: 89 50 4E 47 0D 0A 1A 0A
                         if header[:8] == b'\x89PNG\r\n\x1a\n':
                             all_icon_files.append(name)
-                except:
-                    pass
+                except OSError:
+                    continue
         
         print(f"Found {len(all_icon_files)} PNG files in {actual_icons_dir}")
         logging.info(f"Found {len(all_icon_files)} PNG files in {actual_icons_dir}")
@@ -954,7 +954,7 @@ class mapIconsDialog(QtWidgets.QDialog, FORM_CLASS):
         container_layout = QtWidgets.QVBoxLayout(container)
         container_layout.setContentsMargins(6, 6, 6, 6)
         container_layout.setSpacing(6)
-        container_layout.setAlignment(Qt.AlignCenter)
+        container_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
         
         # Create the icon button with enhanced styling
         btn = QtWidgets.QPushButton()
@@ -968,7 +968,7 @@ class mapIconsDialog(QtWidgets.QDialog, FORM_CLASS):
         btn.setIconSize(QSize(ICON_SIZE, ICON_SIZE))
         btn.setFixedSize(BUTTON_SIZE, BUTTON_SIZE)
         btn.setCheckable(True)
-        btn.setCursor(Qt.PointingHandCursor)  # Show hand cursor on hover
+        btn.setCursor(Qt.CursorShape.PointingHandCursor)  # Show hand cursor on hover
         btn.setStyleSheet(ICON_BUTTON_STYLE)
         
         # Connect button click to icon selection
@@ -976,21 +976,21 @@ class mapIconsDialog(QtWidgets.QDialog, FORM_CLASS):
                           self.select_icon(path, b, filename))
         
         # Add button to container (always add the button)
-        container_layout.addWidget(btn, 0, Qt.AlignHCenter)
+        container_layout.addWidget(btn, 0, Qt.AlignmentFlag.AlignHCenter)
         
         # Add label below button if display name exists
         if display_name:
             title_label = QtWidgets.QLabel(display_name)
-            title_label.setAlignment(Qt.AlignCenter)
+            title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
             title_label.setWordWrap(True)
             title_label.setMaximumWidth(LABEL_MAX_WIDTH)
             title_label.setMinimumHeight(LABEL_MIN_HEIGHT)
             title_label.setMinimumWidth(80)  # Ensure minimum width for readability
             title_label.setStyleSheet(LABEL_STYLE)
-            container_layout.addWidget(title_label, 0, Qt.AlignHCenter)
+            container_layout.addWidget(title_label, 0, Qt.AlignmentFlag.AlignHCenter)
         
         # Add container to grid layout with spacing
-        layout.addWidget(container, row, col, Qt.AlignCenter)
+        layout.addWidget(container, row, col, Qt.AlignmentFlag.AlignCenter)
         if layout.spacing() < 8:
             layout.setSpacing(12)  # Add spacing between icon cards
         self.icon_buttons.append(btn)
@@ -1171,8 +1171,8 @@ class mapIconsDialog(QtWidgets.QDialog, FORM_CLASS):
                     preview_pixmap = pixmap.scaled(
                         METADATA_PREVIEW_SIZE,
                         METADATA_PREVIEW_SIZE,
-                        Qt.KeepAspectRatio,
-                        Qt.SmoothTransformation,
+                        Qt.AspectRatioMode.KeepAspectRatio,
+                        Qt.TransformationMode.SmoothTransformation,
                     )
                     logging.info(f"Preview updated to PNG: {self.selected_icon_png}")
             # Apply pixmap if we have one
@@ -1216,7 +1216,7 @@ class mapIconsDialog(QtWidgets.QDialog, FORM_CLASS):
             height = int(default_size.height() * scale)
             
             pixmap = QtGui.QPixmap(width, height)
-            pixmap.fill(Qt.transparent)
+            pixmap.fill(Qt.GlobalColor.transparent)
             
             painter = QtGui.QPainter(pixmap)
             renderer.render(painter)
@@ -1249,8 +1249,8 @@ class mapIconsDialog(QtWidgets.QDialog, FORM_CLASS):
                 preview_pixmap = pixmap.scaled(
                     METADATA_PREVIEW_SIZE,
                     METADATA_PREVIEW_SIZE,
-                    Qt.KeepAspectRatio,
-                    Qt.SmoothTransformation,
+                    Qt.AspectRatioMode.KeepAspectRatio,
+                    Qt.TransformationMode.SmoothTransformation,
                 )
         if preview_pixmap is not None:
             self.iconPreviewLabel.setPixmap(preview_pixmap)

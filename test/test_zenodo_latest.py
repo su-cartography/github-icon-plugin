@@ -16,6 +16,7 @@ import sys
 import types
 import unittest
 from pathlib import Path
+from urllib.parse import urlparse
 from urllib.request import Request, urlopen
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -98,8 +99,12 @@ class TestZenodoLatestLive(unittest.TestCase):
     def test_latest_metadata_csv_headers(self):
         assets = get_zenodo_assets(force_refresh=True)
         self.assertIsNotNone(assets)
+        metadata_url = assets["metadata_csv_url"]
+        parsed = urlparse(metadata_url)
+        if parsed.scheme not in ("http", "https"):
+            self.fail(f"Refusing non-HTTP(S) metadata URL: {metadata_url}")
         request = Request(
-            assets["metadata_csv_url"],
+            metadata_url,
             headers={"User-Agent": _USER_AGENT},
         )
         with urlopen(request, timeout=60) as response:
