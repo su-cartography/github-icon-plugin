@@ -29,7 +29,7 @@ import logging
 from pathlib import Path
 
 from qgis.PyQt import uic, QtWidgets, QtGui
-from qgis.PyQt.QtCore import Qt, QSize, QTimer, QEvent
+from qgis.PyQt.QtCore import Qt, QSize, QTimer, QEvent, QByteArray
 from qgis.PyQt.QtWidgets import (
     QLabel,
     QGridLayout,
@@ -77,6 +77,26 @@ from .config import (
     BUTTON_BOX_STYLE,
 )
 from .data_manager import DataManager
+
+
+def _normalize_svg_markup(svg_text):
+    """
+    This function rewrites SVG text so Qt can draw it in the preview.
+
+    Latest SVGs from Zenodo comment out <style> and use stroke="param(outline), #000",
+    which Qt doesnt understand and subsequently QSvgRenderer leaves blank in the preview panel.
+    """
+    text = re.sub(
+        r"<!--\s*(<style\b.*?</style>)\s*-->",
+        r"\1",
+        svg_text,
+        flags=re.DOTALL | re.IGNORECASE,
+    )
+    # param(name), fallback   or   param(name) fallback
+    text = re.sub(r"param\([^)]+\),\s*", "", text)
+    text = re.sub(r"param\([^)]+\)\s+", "", text)
+    return text
+
 
 # Metadata panel value labels that may wrap to multiple lines
 
@@ -1188,6 +1208,26 @@ class mapIconsDialog(QtWidgets.QDialog, FORM_CLASS):
             self.selected_icon = self.selected_icon_png
             logging.info(f"Updated selected_icon to PNG: {self.selected_icon}")
 
+    def _normalized_svg_markup(self, svg_path):
+        """Return SVG text with styles restored and QGIS params resolved."""
+        svg_path = Path(svg_path)
+        return _normalize_svg_markup(svg_path.read_text(encoding="utf-8"))
+
+    def _display_svg_path(self, svg_path):
+        """
+        Write a display-ready SVG beside the cache and return its path.
+
+        Used for map symbols so strokes/fills match the fixed preview.
+        """
+        svg_path = Path(svg_path)
+        out_dir = self.data_manager.cache_dir / "svg-display"
+        out_dir.mkdir(parents=True, exist_ok=True)
+        out_path = out_dir / svg_path.name
+        markup = self._normalized_svg_markup(svg_path)
+        if not out_path.is_file() or out_path.read_text(encoding="utf-8") != markup:
+            out_path.write_text(markup, encoding="utf-8")
+        return out_path
+
     def _render_svg_to_pixmap(self, svg_path, target_size=None):
         """
         Render an SVG file to a QPixmap for preview purposes.
@@ -1201,7 +1241,8 @@ class mapIconsDialog(QtWidgets.QDialog, FORM_CLASS):
         try:
             if target_size is None:
                 target_size = METADATA_PREVIEW_SIZE
-            renderer = QSvgRenderer(str(svg_path))
+            markup = self._normalized_svg_markup(svg_path)
+            renderer = QSvgRenderer(QByteArray(markup.encode("utf-8")))
             if not renderer.isValid():
                 logging.warning(f"QSvgRenderer could not load SVG: {svg_path}")
                 return None
@@ -1212,8 +1253,8 @@ class mapIconsDialog(QtWidgets.QDialog, FORM_CLASS):
                 default_size = QSize(target_size, target_size)
             
             scale = min(target_size / default_size.width(), target_size / default_size.height())
-            width = int(default_size.width() * scale)
-            height = int(default_size.height() * scale)
+            width = max(1, int(default_size.width() * scale))
+            height = max(1, int(default_size.height() * scale))
             
             pixmap = QtGui.QPixmap(width, height)
             pixmap.fill(Qt.GlobalColor.transparent)
@@ -1338,9 +1379,10 @@ class mapIconsDialog(QtWidgets.QDialog, FORM_CLASS):
             })
             
             if is_svg and icon_path_obj.exists():
-                # Use SVG marker symbol layer
+                # Use SVG marker symbol layer with display-normalized markup
                 logging.info(f"✓ Using SVG format: {icon_path_str}")
-                svg_layer = QgsSvgMarkerSymbolLayer(icon_path_str)
+                display_svg = self._display_svg_path(icon_path_obj)
+                svg_layer = QgsSvgMarkerSymbolLayer(str(display_svg))
                 svg_layer.setSize(6)
                 symbol.changeSymbolLayer(0, svg_layer)
             else:
