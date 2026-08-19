@@ -49,6 +49,18 @@ def _pick_file(files, filename):
     return None
 
 
+def _open_http_url(url, timeout=30):
+    """Open url with urlopen only when the scheme is http or https.
+
+    QGIS/Bandit B310 requires urlopen to sit inside this scheme check.
+    """
+    parsed = urlparse(url)
+    if parsed.scheme in ("http", "https"):
+        request = Request(url, headers={"User-Agent": _USER_AGENT})
+        return urlopen(request, timeout=timeout)
+    raise ValueError(f"Refusing non-HTTP(S) URL scheme {parsed.scheme!r}: {url}")
+
+
 def resolve_latest_zenodo_assets():
     """
     Query Zenodo for the latest release and resolve download URLs.
@@ -57,16 +69,7 @@ def resolve_latest_zenodo_assets():
     """
     try:
         logger.info("Fetching latest Zenodo record from %s", ZENODO_API_LATEST_URL)
-        parsed = urlparse(ZENODO_API_LATEST_URL)
-        if parsed.scheme not in ("http", "https"):
-            raise ValueError(
-                f"Refusing non-HTTP(S) URL scheme {parsed.scheme!r}: "
-                f"{ZENODO_API_LATEST_URL}"
-            )
-        request = Request(
-            ZENODO_API_LATEST_URL, headers={"User-Agent": _USER_AGENT}
-        )
-        with urlopen(request, timeout=30) as response:
+        with _open_http_url(ZENODO_API_LATEST_URL, timeout=30) as response:
             payload = json.loads(response.read().decode("utf-8"))
     except (HTTPError, URLError, OSError, TimeoutError, ValueError, json.JSONDecodeError) as err:
         logger.error("Failed to fetch Zenodo API: %s", err)
@@ -116,11 +119,7 @@ def _download(url, dest, label):
     dest.parent.mkdir(parents=True, exist_ok=True)
     try:
         logger.info("Downloading %s from %s", label, url)
-        parsed = urlparse(url)
-        if parsed.scheme not in ("http", "https"):
-            raise ValueError(f"Refusing non-HTTP(S) URL scheme {parsed.scheme!r}: {url}")
-        request = Request(url, headers={"User-Agent": _USER_AGENT})
-        with urlopen(request, timeout=30) as response:
+        with _open_http_url(url, timeout=30) as response:
             with open(dest, "wb") as f:
                 shutil.copyfileobj(response, f)
         logger.info("Downloaded %s to %s", label, dest)
