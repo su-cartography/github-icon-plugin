@@ -1213,20 +1213,27 @@ class mapIconsDialog(QtWidgets.QDialog, FORM_CLASS):
         svg_path = Path(svg_path)
         return _normalize_svg_markup(svg_path.read_text(encoding="utf-8"))
 
-    def _display_svg_path(self, svg_path):
+    def _svg_stroke_width_mm(self, svg_path, size_mm):
         """
-        Write a display-ready SVG beside the cache and return its path.
+        Stroke width in mm that reproduces the SVG's designed stroke at size_mm.
 
-        Used for map symbols so strokes/fills match the fixed preview.
+        QGIS substitutes param(outline-width) with the symbol layer's stroke
+        width, which is measured in millimetres. Scale it by the viewBox so
+        the map symbol matches the PNG.
         """
-        svg_path = Path(svg_path)
-        out_dir = self.data_manager.cache_dir / "svg-display"
-        out_dir.mkdir(parents=True, exist_ok=True)
-        out_path = out_dir / svg_path.name
-        markup = self._normalized_svg_markup(svg_path)
-        if not out_path.is_file() or out_path.read_text(encoding="utf-8") != markup:
-            out_path.write_text(markup, encoding="utf-8")
-        return out_path
+        try:
+            markup = Path(svg_path).read_text(encoding="utf-8")
+            view_box = re.search(r'viewBox\s*=\s*"([^"]+)"', markup)
+            design_width = re.search(r"param\(outline-width\)[,\s]+([0-9.]+)", markup)
+            if not view_box or not design_width:
+                return None
+            box_width = float(view_box.group(1).split()[2])
+            if box_width <= 0:
+                return None
+            return float(design_width.group(1)) * size_mm / box_width
+        except (OSError, ValueError, IndexError) as err:
+            logging.warning(f"Could not derive stroke width for {svg_path}: {err}")
+            return None
 
     def _render_svg_to_pixmap(self, svg_path, target_size=None):
         """
@@ -1379,11 +1386,15 @@ class mapIconsDialog(QtWidgets.QDialog, FORM_CLASS):
             })
             
             if is_svg and icon_path_obj.exists():
-                # Use SVG marker symbol layer with display-normalized markup
+                # Pass the original markup. QGIS reads param(outline) /
+                # param(outline-width) straight from the file to decide
+                # whether stroke colour and width are editable in Symbology.
                 logging.info(f"✓ Using SVG format: {icon_path_str}")
-                display_svg = self._display_svg_path(icon_path_obj)
-                svg_layer = QgsSvgMarkerSymbolLayer(str(display_svg))
+                svg_layer = QgsSvgMarkerSymbolLayer(icon_path_str)
                 svg_layer.setSize(6)
+                stroke_width = self._svg_stroke_width_mm(icon_path_obj, 6)
+                if stroke_width is not None:
+                    svg_layer.setStrokeWidth(stroke_width)
                 symbol.changeSymbolLayer(0, svg_layer)
             else:
                 # Use raster marker symbol layer for PNG
