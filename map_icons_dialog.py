@@ -177,6 +177,8 @@ class mapIconsDialog(QtWidgets.QDialog, FORM_CLASS):
         self.icon_entries = []          # Store per-icon data for search/filtering
         self._icons_loaded = False
         self._grid_columns = MAX_ICONS_PER_ROW
+        self._progress_dialog = None
+        self._data_startup_done = False
         
         # Branded header and search above the icon grid
         self.headerWidget = QtWidgets.QWidget(self)
@@ -246,16 +248,20 @@ class mapIconsDialog(QtWidgets.QDialog, FORM_CLASS):
             self.pngFormatRadio.setChecked(True)
             self.svgFormatRadio.setEnabled(False)  # Will be enabled when SVG is available
             self.svgFormatRadio.setVisible(True)
-        
-        # Initialize data manager and ensure data is available
+
+    def _startup_load_data(self):
+        """Download/cache data, then load metadata and icons into the dialog."""
+        self._show_progress_dialog(
+            "Downloading map icons from Zenodo...\n"
+            "This can take about 10 seconds on first launch. Please wait."
+        )
         self.initialize_data()
-        
-        # Load metadata and icons
+
         if self.data_manager:
             print("=== LOADING METADATA ===")
             self.load_metadata()
             print(f"Metadata list length: {len(self.metadata_list) if hasattr(self, 'metadata_list') else 0}")
-            
+
             print("=== LOADING ICONS ===")
             self.load_icons()
             print(f"Icon buttons created: {len(self.icon_buttons)}")
@@ -270,23 +276,12 @@ class mapIconsDialog(QtWidgets.QDialog, FORM_CLASS):
             self.data_manager = DataManager(os.path.dirname(__file__))
             print(f"Data manager created. Cache dir: {self.data_manager.cache_dir}")
             print(f"Icons cache dir: {self.data_manager.icons_cache_dir}")
-            
-            # Show progress dialog for data download
-            progress_dialog = QtWidgets.QProgressDialog(
-                "Checking and downloading required data...", 
-                "Cancel", 
-                0, 
-                0, 
-                self
-            )
-            progress_dialog.setWindowTitle("Map Icons Plugin")
-            progress_dialog.setModal(True)
-            progress_dialog.show()
-            
-            # Ensure data is available
+
             print("Calling ensure_data_available()...")
-            if not self.data_manager.ensure_data_available():
-                progress_dialog.close()
+            if not self.data_manager.ensure_data_available(
+                status_callback=self._set_loading_status
+            ):
+                self._hide_loading_ui()
                 error_msg = (
                     "Failed to download required data from Zenodo.\n\n"
                     "Please check:\n"
@@ -297,19 +292,48 @@ class mapIconsDialog(QtWidgets.QDialog, FORM_CLASS):
                 print("ERROR: ensure_data_available() returned False")
                 self.show_error_message(error_msg)
                 return
-            
-            progress_dialog.close()
+
+            self._set_loading_status("Loading icons into the gallery...")
             print("✓ Data manager initialized successfully")
-            
+
         except Exception as e:
+            self._hide_loading_ui()
             import traceback
             error_details = traceback.format_exc()
             print(f"EXCEPTION in initialize_data: {e}")
             print(error_details)
             logging.error(f"Failed to initialize data manager: {e}")
             logging.error(error_details)
-            self.show_error_message(f"Failed to initialize data manager: {e}\n\nCheck Python Console for details.")
-    
+            self.show_error_message(
+                f"Failed to initialize data manager: {e}\n\n"
+                "Check Python Console for details."
+            )
+
+    def _show_progress_dialog(self, message):
+        """Show a busy progress dialog with a clear status message."""
+        self._progress_dialog = QtWidgets.QProgressDialog(self)
+        self._progress_dialog.setWindowTitle("Map Icons Plugin")
+        self._progress_dialog.setLabelText(message)
+        self._progress_dialog.setCancelButton(None)
+        self._progress_dialog.setRange(0, 0)
+        self._progress_dialog.setMinimumDuration(0)
+        self._progress_dialog.setWindowModality(Qt.WindowModality.WindowModal)
+        self._progress_dialog.show()
+        QtWidgets.QApplication.processEvents()
+
+    def _set_loading_status(self, message):
+        """Update the progress dialog text during Zenodo download."""
+        if self._progress_dialog is not None:
+            self._progress_dialog.setLabelText(message)
+        QtWidgets.QApplication.processEvents()
+
+    def _hide_loading_ui(self):
+        """Close the progress dialog once icons are ready."""
+        if self._progress_dialog is not None:
+            self._progress_dialog.close()
+            self._progress_dialog = None
+        QtWidgets.QApplication.processEvents()
+
     def show_error_message(self, message):
         """Show an error message to the user."""
         QMessageBox.critical(self, "Error", message)
@@ -390,8 +414,13 @@ class mapIconsDialog(QtWidgets.QDialog, FORM_CLASS):
                 viewport.installEventFilter(self)
 
     def showEvent(self, event):
-        """Reflow icon grid once the dialog has a real width."""
+        """Load Zenodo data on first show, then reflow the icon grid."""
         super(mapIconsDialog, self).showEvent(event)
+        if not self._data_startup_done:
+            self._data_startup_done = True
+            QtWidgets.QApplication.processEvents()
+            self._startup_load_data()
+            self._hide_loading_ui()
         if self._icons_loaded:
             self._schedule_icon_grid_relayout(force=True)
 
