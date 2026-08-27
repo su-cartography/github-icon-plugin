@@ -324,26 +324,36 @@ class DataManager:
         """True if the metadata CSV has been downloaded."""
         return self.get_metadata_file().is_file()
 
-    def ensure_data_available(self):
-        """Download PNGs, SVGs, and metadata from Zenodo if any are missing from cache."""
+    def ensure_data_available(self, status_callback=None):
+        """Download PNGs, SVGs, and metadata from Zenodo if any are missing from cache.
+        """
+        def _status(message):
+            if status_callback:
+                status_callback(message)
+
+        _status("Checking Zenodo for the latest icons...")
         if not self._refresh_cache_if_new_release():
             return False
 
         ok = True
         if not self.icons_exist():
             logger.info("Icons not in cache, downloading from Zenodo...")
+            _status("Downloading PNG icons from Zenodo...")
             ok = self.download_and_extract_icons() and ok
         if not self.svgs_exist():
             logger.info("SVG icons not in cache, downloading from Zenodo...")
+            _status("Downloading SVG icons from Zenodo...")
             if not self.download_and_extract_svgs():
                 logger.warning("SVG download failed; continuing without SVGs")
         if not self.metadata_exists():
             logger.info("Metadata not in cache, downloading from Zenodo...")
+            _status("Downloading icon metadata...")
             ok = self.download_metadata() and ok
         if ok:
             assets = get_zenodo_assets()
             if assets:
                 self._write_cached_record_id(assets["record_id"])
+            _status("Finishing setup...")
         return ok
 
     def clear_cache(self, keep_record_id=False):
