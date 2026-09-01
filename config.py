@@ -214,28 +214,35 @@ QGroupBox#formatGroup {
     color: #9D0208;
     border: 2px solid #F72585;
     border-radius: 12px;
-    margin-top: 12px;
-    padding: 8px 8px 8px 8px;
+    margin-top: 4px;
+    padding: 4px 4px 4px 4px;
     background-color: rgba(255, 255, 255, 0.82);
 }
 QGroupBox#formatGroup::title {
     color: #F72585;
     padding: 0 8px;
+    margin-bottom: 4px;
 }
 QRadioButton {
     font-size: 12px;
     font-weight: 600;
     color: #560BAD;
     spacing: 8px;
+    
 }
 QRadioButton::indicator {
     width: 16px;
     height: 16px;
 }
+QRadioButton::indicator:unchecked {
+    border: 2px solid #7209B7;
+    border-radius: 10px;
+    background: transparent;
+}
 QRadioButton::indicator:checked {
     background-color: #CCFF33;
     border: 2px solid #7209B7;
-    border-radius: 8px;
+    border-radius: 10px;
 }
 """
 
