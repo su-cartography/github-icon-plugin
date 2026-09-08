@@ -50,14 +50,14 @@ def _pick_file(files, filename):
 
 
 def _open_http_url(url, timeout=30):
-    """Open url with urlopen only when the scheme is http or https.
+    """Open url with urlopen only after an HTTP(S) scheme check.
 
     QGIS/Bandit B310 requires urlopen to sit inside this scheme check.
     """
     parsed = urlparse(url)
     if parsed.scheme in ("http", "https"):
         request = Request(url, headers={"User-Agent": _USER_AGENT})
-        return urlopen(request, timeout=timeout)
+        return urlopen(request, timeout=timeout)  # nosec B310
     raise ValueError(f"Refusing non-HTTP(S) URL scheme {parsed.scheme!r}: {url}")
 
 
